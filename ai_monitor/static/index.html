@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>竹韵舆情 · AI Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="scene"><div class="mountains"></div><div class="mist"></div></div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none"><path d="M16 4c-2 6-8 10-8 16a8 8 0 1016 0c0-6-6-10-8-16z" stroke="currentColor" stroke-width="1.5"/></svg>
+        <div>
+          <div class="brand-title">竹韵舆情</div>
+          <div class="brand-sub">AI MONITOR</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-panel="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>舆情概览</button>
+        <button class="nav-item" data-panel="jobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>监控任务</button>
+        <button class="nav-item" data-panel="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>告警中心</button>
+        <button class="nav-item" data-panel="analysis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg>分析结果</button>
+        <button class="nav-item" data-panel="rules"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>规则配置</button>
+        <button class="nav-item" data-panel="repos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3v12M18 9v12M6 15l6-3 6 3"/></svg>仓库监控</button>
+        <button class="nav-item" data-panel="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>系统设置</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="health-pill"><span class="health-dot" id="healthDot"></span><span id="healthLabel">检测中…</span></div>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <header class="page-header">
+        <h1 class="page-title" id="pageTitle">舆情概览</h1>
+        <p class="page-desc" id="pageDesc">社媒爬取 · AI 分析 · 规则告警 · 仓库监控</p>
+      </header>
+
+      <main class="paper">
+        <div class="paper-body">
+          <section id="panel-overview" class="panel active">
+            <div class="action-bar">
+              <button class="btn-primary" id="btnRefreshAll">刷新数据</button>
+              <button class="btn-ghost" id="btnRunAllRepo">立即检查全部仓库</button>
+              <button class="btn-ghost" id="btnRunAllSocial">立即执行全部舆情</button>
+            </div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <p style="font-size:0.85rem;color:var(--ink-muted);margin-bottom:20px">覆盖平台：<span id="overviewPlatforms">—</span></p>
+            <div class="table-wrap">
+              <table><thead><tr><th>时间</th><th>级别</th><th>规则</th><th>平台</th><th>摘要</th></tr></thead><tbody id="overviewAlertsBody"></tbody></table>
+            </div>
+          </section>
+
+          <section id="panel-jobs" class="panel">
+            <div class="form-card">
+              <h3>新建监控任务</h3>
+              <div class="form-tabs">
+                <button type="button" class="form-tab active" data-form="social">社媒舆情</button>
+                <button type="button" class="form-tab" data-form="repo">代码仓库</button>
+              </div>
+              <div id="formSocial" class="form-panel active">
+                <div class="form-row">
+                  <select id="newPlatform">
+                    <option value="wb">微博</option>
+                    <option value="xhs">小红书</option>
+                    <option value="dy">抖音</option>
+                    <option value="bili">B站</option>
+                    <option value="zhihu">知乎</option>
+                    <option value="ks">快手</option>
+                    <option value="tieba">贴吧</option>
+                  </select>
+                  <input id="newKeywords" placeholder="关键词，如：九阳" />
+                  <select id="newRuleSets" multiple title="规则集（可多选）">
+                    <option value="brand_monitoring" selected>品牌监控</option>
+                    <option value="joyoung_brand">九阳品牌</option>
+                    <option value="competitor_tracking">竞品监控</option>
+                  </select>
+                  <button class="btn-primary" id="btnCreateSocial">创建</button>
+                </div>
+              </div>
+              <div id="formRepo" class="form-panel">
+                <div class="form-row">
+                  <select id="newRepoPlatform">
+                    <option value="github">GitHub</option>
+                    <option value="gitee">Gitee</option>
+                  </select>
+                  <input id="newRepo" placeholder="完整 URL 或 owner/repo" style="min-width:280px" />
+                  <input id="newRepoBranch" placeholder="分支（URL 已含分支可留空）" />
+                  <button class="btn-primary" id="btnCreateRepo">创建</button>
+                </div>
+              </div>
+            </div>
+            <div class="action-bar">
+              <div class="filter-chips" id="jobFilters">
+                <button type="button" class="chip active" data-filter="all">全部</button>
+                <button type="button" class="chip" data-filter="social">舆情</button>
+                <button type="button" class="chip" data-filter="github">GitHub</button>
+                <button type="button" class="chip" data-filter="gitee">Gitee</button>
+              </div>
+              <button class="btn-ghost" id="btnRunFiltered">执行当前列表</button>
+            </div>
+            <div class="jobs-list" id="jobsList"></div>
+          </section>
+
+          <section id="panel-alerts" class="panel">
+            <div class="table-wrap">
+              <table><thead><tr><th>时间</th><th>级别</th><th>规则</th><th>平台</th><th>摘要</th><th></th></tr></thead><tbody id="alertsBody"></tbody></table>
+            </div>
+          </section>
+
+          <section id="panel-analysis" class="panel">
+            <div class="table-wrap">
+              <table><thead><tr><th>时间</th><th>平台</th><th>情感</th><th>分数</th><th>话题</th><th>摘要</th></tr></thead><tbody id="analysisBody"></tbody></table>
+            </div>
+          </section>
+
+          <section id="panel-rules" class="panel">
+            <div class="action-bar">
+              <button class="btn-ghost" id="btnImportDefaultRules">导入默认规则</button>
+              <button class="btn-ghost" id="btnImportJoyoungRules">导入九阳规则</button>
+            </div>
+            <div class="table-wrap">
+              <table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>级别</th><th>通知渠道</th></tr></thead><tbody id="rulesBody"></tbody></table>
+            </div>
+          </section>
+
+          <section id="panel-settings" class="panel">
+            <div class="stats-grid" id="systemStatusGrid"></div>
+            <div class="action-bar">
+              <button class="btn-ghost" id="btnSyncNotifications">同步通知配置</button>
+              <button class="btn-ghost" id="btnReloadRuleSets">刷新规则集列表</button>
+            </div>
+            <p style="font-size:0.85rem;color:var(--ink-muted)">时间显示为北京时间 (UTC+8)。社媒爬取需在 MediaCrawler 目录配置各平台 Cookie。</p>
+          </section>
+
+          <section id="panel-repos" class="panel">
+            <div class="action-bar">
+              <button class="btn-primary" id="btnRunAllRepo2">立即检查全部仓库</button>
+            </div>
+            <div class="jobs-list" id="reposJobsList" style="margin-bottom:24px"></div>
+            <h3 style="font-family:var(--font-serif);margin-bottom:12px;font-size:1rem">代码更新记录</h3>
+            <div class="table-wrap">
+              <table><thead><tr><th>检测时间</th><th>仓库</th><th>分支</th><th>作者</th><th>提交时间</th><th>SHA</th><th>说明</th></tr></thead><tbody id="repoEventsBody"></tbody></table>
+            </div>
+          </section>
+        </div>
+        <footer class="paper-footer">
+          <span id="lastSync">—</span>
+          <span id="saveStatus"><span class="save-status">等待同步</span></span>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="editJobDialog" class="edit-dialog">
+    <form method="dialog" id="editJobForm">
+      <h3>编辑任务</h3>
+      <p class="edit-job-id" id="editJobIdLabel"></p>
+      <label>关键词 <input id="editKeywords" /></label>
+      <label>状态
+        <select id="editStatus">
+          <option value="active">active</option>
+          <option value="paused">paused</option>
+        </select>
+      </label>
+      <label>规则集（逗号分隔）
+        <input id="editRuleSets" placeholder="brand_monitoring,joyoung_brand" />
+      </label>
+      <label id="editBranchWrap" class="hidden">分支名
+        <input id="editBranch" placeholder="main、develop，留空=默认分支" />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-ghost" id="btnEditCancel">取消</button>
+        <button type="submit" class="btn-primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

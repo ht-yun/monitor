@@ -1,1 +1,0 @@
-Permission verification successful! I now have write access to this folder.

@@ -1,0 +1,124 @@
+# Monitoring Rules Configuration
+# This file defines default monitoring rule presets.
+# Rules can also be managed dynamically via API/database.
+
+rule_sets:
+  brand_monitoring:
+    name: "品牌监控"
+    description: "监控品牌相关的负面舆情和关键词告警"
+    rules:
+      - rule_id: "negative_sentiment_spike"
+        name: "负面情感激增"
+        rule_type: sentiment
+        description: "当负面内容占比超过阈值时触发告警"
+        params:
+          sentiment: "negative"
+          threshold: 0.3
+          min_sample_size: 10
+        severity: critical
+        notification_channels: ["email", "dingtalk"]
+        cooldown_minutes: 60
+
+      - rule_id: "keyword_emergency"
+        name: "关键词紧急告警"
+        rule_type: keyword
+        description: "出现紧急关键词时立即通知"
+        params:
+          keywords: ["诈骗", "欺诈", "投诉", "退款", "假货"]
+          min_mentions: 3
+          window_minutes: 60
+        severity: critical
+        notification_channels: ["email", "dingtalk", "feishu"]
+        cooldown_minutes: 30
+
+      - rule_id: "negative_trend_rising"
+        name: "负面趋势上升"
+        rule_type: trend
+        description: "负面内容占比持续上升时告警"
+        params:
+          metric: "negative_ratio"
+          lookback_hours: 24
+          increase_threshold: 0.5
+        severity: warning
+        notification_channels: ["email"]
+        cooldown_minutes: 120
+
+  competitor_tracking:
+    name: "竞品监控"
+    description: "监控竞品在社交平台上的动态"
+    rules:
+      - rule_id: "competitor_mention"
+        name: "竞品被提及"
+        rule_type: keyword
+        description: "竞品名称在内容中被提及"
+        params:
+          keywords: []
+          min_mentions: 1
+        severity: info
+        notification_channels: ["email"]
+        cooldown_minutes: 60
+
+      - rule_id: "competitor_volume_spike"
+        name: "竞品讨论量异常"
+        rule_type: anomaly
+        description: "竞品相关讨论量突然大幅增加"
+        params:
+          spike_threshold: 3.0
+          lookback_hours: 24
+        severity: warning
+        notification_channels: ["dingtalk"]
+        cooldown_minutes: 60
+
+  industry_monitoring:
+    name: "行业热点监控"
+    description: "监控行业趋势和热点话题"
+    rules:
+      - rule_id: "topic_trending"
+        name: "话题热度上升"
+        rule_type: trend
+        description: "某个话题在短时间内热度显著上升"
+        params:
+          min_mentions: 20
+          increase_factor: 2.0
+          window_hours: 24
+        severity: info
+        notification_channels: ["email"]
+        cooldown_minutes: 180
+
+  joyoung_brand:
+    name: "九阳品牌监控"
+    description: "监控九阳品牌在微博、小红书等平台的舆情（含拼多多相关讨论）"
+    rules:
+      - rule_id: "joyoung_negative_sentiment"
+        name: "九阳负面情感"
+        rule_type: sentiment
+        description: "九阳相关内容负面占比过高"
+        params:
+          sentiment: "negative"
+          threshold: 0.25
+          min_sample_size: 5
+        severity: critical
+        notification_channels: ["console", "dingtalk"]
+        cooldown_minutes: 60
+
+      - rule_id: "joyoung_complaint_keywords"
+        name: "九阳投诉关键词"
+        rule_type: keyword
+        description: "出现投诉、退款、假货等关键词"
+        params:
+          keywords: ["投诉", "退款", "假货", "质量差", "坏了", "维权", "售后", "拼多多"]
+          min_mentions: 2
+        severity: critical
+        notification_channels: ["console", "dingtalk", "feishu"]
+        cooldown_minutes: 30
+
+      - rule_id: "joyoung_pdd_mention"
+        name: "九阳×拼多多提及"
+        rule_type: keyword
+        description: "内容同时涉及九阳与拼多多渠道"
+        params:
+          keywords: ["拼多多", "pdd"]
+          min_mentions: 1
+        severity: warning
+        notification_channels: ["console"]
+        cooldown_minutes: 60

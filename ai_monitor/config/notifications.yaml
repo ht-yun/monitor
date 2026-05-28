@@ -1,0 +1,60 @@
+# Notification Channels Configuration
+# Each channel can be enabled/disabled and configured here.
+# Secrets should be set via environment variables, NOT in this file.
+
+channels:
+  email:
+    enabled: false
+    display_name: "邮件通知"
+    config:
+      smtp_host: "${EMAIL_SMTP_HOST}"
+      smtp_port: "${EMAIL_SMTP_PORT}"
+      from_addr: "${EMAIL_FROM}"
+      username: "${EMAIL_USERNAME}"
+      password: "${EMAIL_PASSWORD}"
+
+  sms:
+    enabled: false
+    display_name: "短信通知"
+    config:
+      access_key_id: "${SMS_ACCESS_KEY_ID}"
+      access_key_secret: "${SMS_ACCESS_KEY_SECRET}"
+      sign_name: "${SMS_SIGN_NAME}"
+      template_code: "${SMS_TEMPLATE_CODE}"
+
+  dingtalk:
+    enabled: false
+    display_name: "钉钉"
+    config:
+      webhook_url: "${DINGTALK_WEBHOOK_URL}"
+
+  feishu:
+    enabled: false
+    display_name: "飞书"
+    config:
+      webhook_url: "${FEISHU_WEBHOOK_URL}"
+
+  wechat_work:
+    enabled: false
+    display_name: "企业微信"
+    config:
+      webhook_url: "${WECHAT_WORK_WEBHOOK_URL}"
+
+  slack:
+    enabled: false
+    display_name: "Slack"
+    config:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+
+  discord:
+    enabled: false
+    display_name: "Discord"
+    config:
+      webhook_url: "${DISCORD_WEBHOOK_URL}"
+
+  webhook:
+    enabled: false
+    display_name: "通用 Webhook"
+    config:
+      url: "${WEBHOOK_URL}"
+      secret: "${WEBHOOK_SECRET}"
