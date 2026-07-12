@@ -1,0 +1,23 @@
+﻿version: "3.8"
+
+services:
+  ai-monitor:
+    build: .
+    ports:
+      - "8081:8081"
+    env_file:
+      - ai_monitor/.env
+    environment:
+      # Override for container path
+      - AIMONITOR_DATABASE_URL=sqlite+aiosqlite:///app/ai_monitor/store/ai_monitor.db
+    volumes:
+      - monitor_data:/app/ai_monitor/store
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/api/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  monitor_data:

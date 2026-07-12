@@ -6,6 +6,8 @@ function initPptEvents() {
   try {
     var genBtn = document.getElementById("btnOpenPptGenerator");
     if (genBtn) genBtn.addEventListener("click", openPptDialog);
+    var reportBtn = document.getElementById("btnGenerateReport");
+    if (reportBtn) reportBtn.addEventListener("click", generateProjectReport);
     var batchBtn = document.getElementById("btnPptBatch");
     if (batchBtn) batchBtn.addEventListener("click", batchGeneratePpt);
     var cancelBtn = document.getElementById("btnPptCancel");
@@ -203,4 +205,39 @@ async function batchGeneratePpt() {
     }
   } catch(e) { toast("\u6279\u91cf\u5931\u8d25: " + (e.message || "")); }
   finally { if (btn) { btn.disabled = false; btn.textContent = "\u6279\u91cf\u751f\u6210"; } }
+}
+
+async function generateProjectReport() {
+  var btn = document.getElementById("btnGenerateReport");
+  if (btn) { btn.disabled = true; btn.textContent = "生成中..."; }
+  try {
+    var repos = await api("/api/ppt-generator/repositories");
+    var active = repos.filter(function(r) { return r.status === "active"; });
+    if (!active.length) { toast("没有活跃仓库可生成报告"); return; }
+    var repoList = "";
+    for (var i = 0; i < active.length; i++) {
+      repoList += (i + 1) + ". " + active[i].platform + "/" + active[i].repo + " (" + active[i].active_branch_count + " branches)\n";
+    }
+    var choice = prompt("选择要生成报告的仓库:\n" + repoList + "\n输入编号 (1-" + active.length + "):");
+    if (!choice) { toast("已取消"); return; }
+    var idx = parseInt(choice) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= active.length) { toast("无效编号"); return; }
+    var repo = active[idx];
+    toast("正在生成报告...(可能需要数十秒)");
+    var branch = document.getElementById("pptBranchSelect")?.value || "";
+    var result = await api("/api/report/generate?repository_id=" + repo.id + "&branch=" + encodeURIComponent(branch) + "&include_ai=true", { method: "POST" });
+    if (result.status === "ok") {
+      toast("报告已生成!" + (result.has_ai ? " 含 AI 分析" : "") + " | " + result.lang_count + " 种语言");
+      var w = window.open("", "_blank");
+      w.document.write(result.html_content);
+      w.document.close();
+    } else {
+      toast("生成失败: " + (result.message || ""));
+      console.error("Report gen error:", result);
+    }
+  } catch(e) {
+    console.error("Report gen exception:", e);
+    toast("生成失败: " + String(e.message || e).slice(0, 200));
+  }
+  finally { if (btn) { btn.disabled = false; btn.textContent = "生成项目报告"; } }
 }

@@ -189,3 +189,16 @@ class NotificationConfig(Base):
     config = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SystemConfig(Base):
+    __tablename__ = "system_configs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    config_group = Column(String(64), index=True, nullable=False)
+    config_key = Column(String(128), nullable=False)
+    config_value = Column(Text, default="")
+    display_name = Column(String(128), default="")
+    is_secret = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

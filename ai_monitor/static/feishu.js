@@ -41,10 +41,10 @@ async function loadFeishuBotConfig() {
     var status = document.getElementById('feishuBotStatus');
     if (status) {
       if (cfg.configured) {
-        status.innerHTML = '\u2705 飞书机器人已配置（来源: ' + cfg.source + '）';
+        status.innerHTML = '✅ 飞书机器人已配置（来源: ' + cfg.source + '）';
         status.style.color = 'var(--info)';
       } else {
-        status.innerHTML = '\u274c 未配置飞书机器人';
+        status.innerHTML = '❌ 未配置飞书机器人';
         status.style.color = 'var(--warning)';
       }
     }
@@ -73,10 +73,10 @@ async function testFeishuBot() {
     if (status) { status.innerHTML = '正在发送测试消息...'; status.style.color = 'var(--ink-muted)'; }
     await api('/api/notifications/feishu-bot/test', { method: 'POST' });
     toast('测试消息已发送到飞书');
-    if (status) { status.innerHTML = '\u2705 测试消息发送成功！'; status.style.color = 'var(--info)'; }
+    if (status) { status.innerHTML = '✅ 测试消息发送成功！'; status.style.color = 'var(--info)'; }
   } catch(e) {
     toast('测试发送失败: ' + (e.message || ''));
-    if (status) { status.innerHTML = '\u274c 测试发送失败: ' + (e.message || ''); status.style.color = 'var(--critical)'; }
+    if (status) { status.innerHTML = '❌ 测试发送失败: ' + (e.message || ''); status.style.color = 'var(--critical)'; }
   }
 }
 
@@ -111,7 +111,7 @@ async function pushFeishuRepoReport() {
     var active = repoJobs.filter(function(j) { return j.status === 'active'; });
     if (!active.length) { toast('没有活跃的仓库任务可推送'); return; }
 
-    var lines = ['\u3010仓库监控报告\u3011', '时间: ' + new Date().toLocaleString('zh-CN'), ''];
+    var lines = ['【仓库监控报告】', '时间: ' + new Date().toLocaleString('zh-CN'), ''];
     for (var i = 0; i < active.length; i++) {
       var j = active[i];
       var repo = j.repo || j.keywords || '';

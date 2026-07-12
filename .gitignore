@@ -6,3 +6,10 @@ MediaCrawler/
 ai_monitor/store/*.db
 .venv/
 venv/
+
+ai_monitor/generated_reports/
+
+ai_monitor/generated_ppts/
+server.log
+server.pid
+tmp_*.py

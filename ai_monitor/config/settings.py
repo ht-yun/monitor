@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     DASHBOARD_HOST: str = "0.0.0.0"
     DASHBOARD_PORT: int = 8081
     DASHBOARD_SECRET_KEY: str = "change-me-in-production"
+    DASHBOARD_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
 
     # ==================== MediaCrawler ====================
     MEDIACRAWLER_PATH: str = str(PROJECT_ROOT.parent / "MediaCrawler")

@@ -1,0 +1,11 @@
+﻿.git
+.gitignore
+.github
+.env
+.venv
+venv
+**/__pycache__
+*.pyc
+README.md
+.gitattributes
+.pre-commit-config.yaml

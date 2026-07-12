@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ai_monitor.config.settings import get_settings
 from ai_monitor.store.database import init_db, close_db
-from ai_monitor.dashboard.routers import alerts, analysis, feishu, jobs, notifications, ppt_generator, repositories, rules, system
+from ai_monitor.dashboard.routers import alerts, analysis, config, feishu, jobs, notifications, ppt_generator, repositories, report as report_router, rules, system
 
 
 logger = logging.getLogger("ai_monitor")
@@ -110,12 +110,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=get_settings().DASHBOARD_CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -130,6 +125,8 @@ app.include_router(feishu.router)
 app.include_router(ppt_generator.router)
 app.include_router(repositories.router)
 app.include_router(notifications.router)
+app.include_router(config.router)
+app.include_router(report_router.router)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

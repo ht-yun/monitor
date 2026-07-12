@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
@@ -138,6 +139,7 @@
 
           <section id="panel-settings" class="panel">
             <div class="stats-grid" id="systemStatusGrid"></div>
+            <div id="config-sections"></div>
             <div class="form-card">
               <h3>关联飞书机器人</h3>
               <div class="form-row">
@@ -161,7 +163,7 @@
 
           <section id="panel-repos" class="panel">
             <div class="action-bar">
-              <button class="btn-primary" id="btnRunAllRepo2">立即检查全部仓库</button><button class="btn-ghost" id="btnOpenPptGenerator">生成 PPT 提示词</button><button class="btn-ghost" id="btnPptBatch">批量生成</button><button class="btn-ghost" id="btnPushFeishu">推送飞书</button><button class="btn-ghost" id="btnSyncBranches">同步分支</button>
+              <button class="btn-primary" id="btnRunAllRepo2">立即检查全部仓库</button><button class="btn-ghost" id="btnOpenPptGenerator">生成 PPT 提示词</button><button class="btn-ghost" id="btnPptBatch">批量生成</button><button class="btn-ghost" id="btnPushFeishu">推送飞书</button><button class="btn-ghost" id="btnSyncBranches">同步分支</button><button class=btn-ghost id=btnGenerateReport>生成项目报告</button>
               
               
             </div>
@@ -254,8 +256,10 @@
   <div class="toast" id="toast"></div>
   <script src="/static/ppt_functions.js"></script>
   <script src="/static/feishu.js"></script>
+  <script src="/static/config.js"></script>
   <script src="/static/app.js"></script>
   <script>try { initPptEvents(); } catch(e) { console.error(e); }</script>
+  <script>try { initConfig(); } catch(e) { console.error(e); }
   <script>try { initFeishuBot(); } catch(e) { console.error(e); }</script>
 </body>
 </html>

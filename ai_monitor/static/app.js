@@ -460,7 +460,7 @@ async function importRules(kind) {
 
 function setButtonsDisabled(disabled) {
   document.querySelectorAll('.btn-run-job, .btn-primary, .btn-ghost').forEach(btn => {
-    if (btn.id !== 'btnRefreshAll' && !btn.id.match(/^(btnSaveFeishuBot|btnTestFeishuBot|btnSyncFeishuDoc|btnPushFeishu|btnOpenPptGenerator|btnPptGenerate|btnPptCancel|btnPptBatch)$/)) btn.disabled = disabled;
+    if (btn.id !== 'btnRefreshAll' && !btn.id.match(/^(btnSaveFeishuBot|btnTestFeishuBot|btnSyncFeishuDoc|btnPushFeishu|btnOpenPptGenerator|btnPptGenerate|btnPptCancel|btnGenerateReport|btnPptBatch)$/)) btn.disabled = disabled;
   });
 }
 
