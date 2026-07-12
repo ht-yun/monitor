@@ -183,14 +183,34 @@ async def _save_alerts(config: JobConfig, triggered) -> List[int]:
 async def _resolve_channels(rule_id: str) -> List[str]:
     from ai_monitor.store.models import RuleConfig
 
+    channels: List[str] = []
     async with get_session() as session:
         result = await session.execute(
             select(RuleConfig).where(RuleConfig.rule_id == rule_id)
         )
         row = result.scalar_one_or_none()
         if row and row.notification_channels:
-            return list(row.notification_channels)
-    return ["console"]
+            channels = list(row.notification_channels)
+    if not channels:
+        channels = ["console"]
+    if await _feishu_notification_enabled() and "feishu" not in channels:
+        channels.append("feishu")
+    return channels
+
+
+async def _feishu_notification_enabled() -> bool:
+    from ai_monitor.config.settings import get_settings
+    from ai_monitor.store.models import NotificationConfig
+
+    async with get_session() as session:
+        result = await session.execute(
+            select(NotificationConfig).where(NotificationConfig.channel_name == "feishu")
+        )
+        row = result.scalar_one_or_none()
+        if row and row.is_enabled:
+            return True
+
+    return bool(get_settings().FEISHU_WEBHOOK_URL)
 
 
 async def _mark_channels_sent(alert_id: int, channels: List[str]) -> None:

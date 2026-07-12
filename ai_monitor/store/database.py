@@ -74,6 +74,20 @@ def _migrate_sqlite_columns(conn):
         if "branch" not in ev_cols:
             conn.execute(text("ALTER TABLE repo_update_events ADD COLUMN branch VARCHAR(256) DEFAULT ''"))
 
+    if "monitored_repositories" in inspector.get_table_names():
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "ux_monitored_repositories_platform_repo "
+            "ON monitored_repositories(platform, repo)"
+        ))
+
+    if "monitored_branches" in inspector.get_table_names():
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "ux_monitored_branches_repository_branch "
+            "ON monitored_branches(repository_id, branch)"
+        ))
+
 
 async def close_db():
     """Dispose engine."""

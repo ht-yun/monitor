@@ -28,6 +28,7 @@
         <button class="nav-item" data-panel="analysis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg>分析结果</button>
         <button class="nav-item" data-panel="rules"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>规则配置</button>
         <button class="nav-item" data-panel="repos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3v12M18 9v12M6 15l6-3 6 3"/></svg>仓库监控</button>
+        <button class="nav-item" data-panel="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>运行历史</button>
         <button class="nav-item" data-panel="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>系统设置</button>
       </nav>
       <div class="sidebar-footer">
@@ -129,10 +130,30 @@
             </div>
           </section>
 
+          <section id="panel-history" class="panel">
+            <div class="table-wrap">
+              <table><thead><tr><th>检测时间</th><th>仓库</th><th>分支</th><th>作者</th><th>提交时间</th><th>SHA</th><th>说明</th></tr></thead><tbody id="historyEventsBody"></tbody></table>
+            </div>
+          </section>
+
           <section id="panel-settings" class="panel">
             <div class="stats-grid" id="systemStatusGrid"></div>
+            <div class="form-card">
+              <h3>关联飞书机器人</h3>
+              <div class="form-row">
+                <input id="feishuBotWebhook" placeholder="粘贴飞书机器人 Webhook 地址" style="min-width:360px" />
+                <label style="display:flex;align-items:center;gap:8px;color:var(--ink-muted);font-size:0.85rem">
+                  <input type="checkbox" id="feishuBotEnabled" checked />
+                  启用
+                </label>
+                <button class="btn-primary" id="btnSaveFeishuBot">保存</button>
+                <button class="btn-ghost" id="btnTestFeishuBot">测试发送</button>
+              </div>
+              <p id="feishuBotStatus" style="font-size:0.85rem;color:var(--ink-muted);margin-top:10px"></p>
+            </div>
             <div class="action-bar">
               <button class="btn-ghost" id="btnSyncNotifications">同步通知配置</button>
+              <button class="btn-ghost" id="btnSyncFeishuDoc">手动同步飞书仓库文档</button>
               <button class="btn-ghost" id="btnReloadRuleSets">刷新规则集列表</button>
             </div>
             <p style="font-size:0.85rem;color:var(--ink-muted)">时间显示为北京时间 (UTC+8)。社媒爬取需在 MediaCrawler 目录配置各平台 Cookie。</p>
@@ -140,13 +161,13 @@
 
           <section id="panel-repos" class="panel">
             <div class="action-bar">
-              <button class="btn-primary" id="btnRunAllRepo2">立即检查全部仓库</button>
+              <button class="btn-primary" id="btnRunAllRepo2">立即检查全部仓库</button><button class="btn-ghost" id="btnOpenPptGenerator">生成 PPT 提示词</button><button class="btn-ghost" id="btnPptBatch">批量生成</button><button class="btn-ghost" id="btnPushFeishu">推送飞书</button><button class="btn-ghost" id="btnSyncBranches">同步分支</button>
+              
+              
             </div>
             <div class="jobs-list" id="reposJobsList" style="margin-bottom:24px"></div>
-            <h3 style="font-family:var(--font-serif);margin-bottom:12px;font-size:1rem">代码更新记录</h3>
-            <div class="table-wrap">
-              <table><thead><tr><th>检测时间</th><th>仓库</th><th>分支</th><th>作者</th><th>提交时间</th><th>SHA</th><th>说明</th></tr></thead><tbody id="repoEventsBody"></tbody></table>
-            </div>
+
+            
           </section>
         </div>
         <footer class="paper-footer">
@@ -156,6 +177,55 @@
       </main>
     </div>
   </div>
+
+      <dialog id="pptDialog" class="edit-dialog" style="width:600px;max-width:90vw">
+    <form method="dialog" id="pptForm">
+      <h3>生成 PPT 提示词</h3>
+      <p style="font-size:0.82rem;color:var(--ink-muted);margin-bottom:12px">
+        选择仓库和视觉风格，系统将打包仓库数据 + 风格指引为一份文件。直接交给 AI 即可生成 PPT。
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <label>仓库
+          <select id="pptRepoSelect" style="width:100%">
+            <option value="">—— 加载中——</option>
+          </select>
+        </label>
+        <label>分支（可选）
+          <select id="pptBranchSelect" style="width:100%">
+            <option value="">—— 全部分支 ——</option>
+          </select>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <label>提交数量
+          <input id="pptCommitCount" type="number" value="20" min="5" max="100" />
+        </label>
+        <label>视觉风格
+          <select id="pptStyleSelect" style="width:100%">
+            <option value="">—— 加载中——</option>
+          </select>
+        </label>
+      </div>
+      <div id="pptStylePreview" style="display:none;padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.78rem;background:var(--paper)">
+        <div id="pptStyleImageWrap" style="margin-top:8px;display:none">
+          <img id="pptStyleImage" style="width:100%;border-radius:6px;border:1px solid var(--paper-border);max-height:220px;object-fit:cover;object-position:top" />
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <span style="padding:4px 10px;border-radius:4px;color:#fff" id="styleAccentPreview">强调色</span>
+          <span style="padding:4px 10px;border-radius:4px" id="styleBgPreview">背景色</span>
+        </div>
+        <span id="styleMoodPreview" style="color:var(--ink-muted)"></span>
+        <span style="margin:0 6px;color:var(--ink-muted)">·</span>
+        <span id="styleSuitablePreview" style="color:var(--ink-muted)"></span>
+      </div>
+      <div id="pptStatus" style="font-size:0.85rem;color:var(--ink-muted);padding:8px 0;display:none;"></div>
+      <div id="pptResult" style="font-size:0.85rem;padding:10px;border-radius:8px;display:none;"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-ghost" id="btnPptCancel">取消</button>
+        <button type="submit" class="btn-primary" id="btnPptGenerate" disabled>生成 PPT 提示词</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="editJobDialog" class="edit-dialog">
     <form method="dialog" id="editJobForm">
@@ -182,6 +252,10 @@
   </dialog>
 
   <div class="toast" id="toast"></div>
+  <script src="/static/ppt_functions.js"></script>
+  <script src="/static/feishu.js"></script>
   <script src="/static/app.js"></script>
+  <script>try { initPptEvents(); } catch(e) { console.error(e); }</script>
+  <script>try { initFeishuBot(); } catch(e) { console.error(e); }</script>
 </body>
 </html>

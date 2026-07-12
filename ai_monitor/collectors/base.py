@@ -16,3 +16,22 @@ class CommitInfo:
     message: str = ""
     url: str = ""
     branch: str = ""
+
+
+@dataclass
+class RepositoryInfo:
+    """Repository metadata needed for branch reconciliation."""
+
+    platform: str
+    repo: str
+    default_branch: str = ""
+    html_url: str = ""
+
+
+@dataclass
+class BranchInfo:
+    """Branch metadata from a repository host."""
+
+    name: str
+    sha: str = ""
+    protected: bool = False

@@ -119,6 +119,7 @@ async def _apply_commit_state(
         if previous_sha == commit.sha:
             job.last_run_at = datetime.utcnow()
             job.last_run_status = "success"
+            await _update_branch_snapshot(session, job_id, commit)
             return False, False
 
         if not is_baseline:
@@ -142,6 +143,7 @@ async def _apply_commit_state(
         job.last_run_at = datetime.utcnow()
         job.last_run_status = "success"
         job.updated_at = datetime.utcnow()
+        await _update_branch_snapshot(session, job_id, commit)
 
         return (not is_baseline), is_baseline
 
@@ -162,6 +164,20 @@ async def _update_job_run_meta(
             job.last_run_status = status
 
 
+async def _update_branch_snapshot(session, job_id: str, commit) -> None:
+    from ai_monitor.store.models import MonitoredBranch
+
+    row = await session.execute(
+        select(MonitoredBranch).where(MonitoredBranch.job_id == job_id)
+    )
+    branch = row.scalar_one_or_none()
+    if branch:
+        branch.last_sha = commit.sha
+        branch.last_commit_author = commit.author
+        branch.last_commit_at = commit.committed_at
+        branch.updated_at = datetime.utcnow()
+
+
 async def _notify_repo_update(
     platform: str, repo: str, branch: str, commit, job_id: str
 ) -> None:
@@ -176,14 +192,11 @@ async def _notify_repo_update(
     )
     dispatcher = NotificationDispatcher()
     channels = ["console"]
-    from ai_monitor.config.settings import get_settings
-
-    settings = get_settings()
-    if settings.DINGTALK_WEBHOOK_URL:
+    if await _notification_channel_enabled("dingtalk"):
         channels.append("dingtalk")
-    if settings.FEISHU_WEBHOOK_URL:
+    if await _notification_channel_enabled("feishu"):
         channels.append("feishu")
-    if settings.WEBHOOK_URL:
+    if await _notification_channel_enabled("webhook"):
         channels.append("webhook")
 
     await dispatcher.send_alert(
@@ -196,3 +209,25 @@ async def _notify_repo_update(
         channels=channels,
         sample=commit.message[:200],
     )
+
+
+async def _notification_channel_enabled(channel_name: str) -> bool:
+    from ai_monitor.config.settings import get_settings
+    from ai_monitor.store.models import NotificationConfig
+
+    async with get_session() as session:
+        result = await session.execute(
+            select(NotificationConfig).where(NotificationConfig.channel_name == channel_name)
+        )
+        row = result.scalar_one_or_none()
+        if row and row.is_enabled:
+            return True
+
+    settings = get_settings()
+    if channel_name == "dingtalk":
+        return bool(settings.DINGTALK_WEBHOOK_URL)
+    if channel_name == "feishu":
+        return bool(settings.FEISHU_WEBHOOK_URL)
+    if channel_name == "webhook":
+        return bool(settings.WEBHOOK_URL)
+    return False

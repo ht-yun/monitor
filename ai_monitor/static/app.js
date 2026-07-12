@@ -4,7 +4,7 @@ const PAGE_META = {
   alerts: { title: '告警中心', desc: '品牌舆情与规则触发记录' },
   analysis: { title: '分析结果', desc: 'AI 情感与话题提取' },
   rules: { title: '规则配置', desc: '关键词、情感、趋势与异常规则' },
-  repos: { title: '仓库监控', desc: 'GitHub / Gitee 代码更新' },
+  history: { title: '运行历史', desc: '仓库代码更新与任务执行记录' }, history: { title: '运行历史', desc: '仓库代码更新与任务执行记录' }, repos: { title: '仓库监控', desc: 'GitHub / Gitee 代码更新' },
   settings: { title: '系统设置', desc: '服务状态、通知渠道与运行环境' },
 };
 
@@ -92,43 +92,33 @@ function branchDisplay(branch) {
 }
 
 function renderJobCard(j) {
-  const typeCls = j.source_type === 'social' ? 'tag-social' : (j.platform === 'gitee' ? 'tag-gitee' : 'tag-github');
-  const repoKw = j.repo || j.keywords || '—';
+  const typeCls = j.source_type === "social" ? "tag-social" : (j.platform === "gitee" ? "tag-gitee" : "tag-github");
+  const repoKw = j.repo || j.keywords || "\u2014";
   const kw = isRepoJob(j) && j.branch
-    ? `${repoKw} · ${branchDisplay(j.branch)}`
+    ? "" + repoKw + ""
     : repoKw;
-  const latestLabel = j.latest_update_label ? `（${j.latest_update_label}）` : '';
-  const commitHint = j.last_commit_author ? ` · ${j.last_commit_author}` : '';
-  const runLabel = isRepoJob(j) ? '立即检查' : '立即执行';
-  return `<article class="job-card" data-job-id="${j.job_id}">
-    <div class="job-card-top">
-      <div class="time-block">
-        <span>上次运行</span>
-        <span class="time-val">${fmtTime(j.last_run_at)}</span>
-      </div>
-      <div class="time-block time-right">
-        <span>最新更新${latestLabel}</span>
-        <span class="time-val">${fmtTime(j.latest_update_at)}${commitHint}</span>
-      </div>
-    </div>
-    <div class="job-card-body">
-      <div>
-        <code class="job-id">${j.job_id}</code>
-        <div style="margin-top:6px;color:var(--ink-muted)">${kw}</div>
-      </div>
-      <span class="tag ${typeCls}">${j.source_type}</span>
-      <span>${platLabel(j.platform)}</span>
-      <span>${j.status}</span>
-      <div class="job-card-actions">
-        <button class="btn-ghost btn-run-job" data-job-id="${j.job_id}">${runLabel}</button>
-        <button class="btn-ghost btn-edit-job" data-job-id="${j.job_id}">编辑</button>
-        <button class="btn-ghost btn-del-job" data-job-id="${j.job_id}">删除</button>
-      </div>
-    </div>
-  </article>`;
-}
-
-function filterJobs(jobs) {
+  const branch_label = (isRepoJob(j) && j.branch) ? "<span class=\"branch-label\">\u279e " + branchDisplay(j.branch) + "</span>" : "";
+  const status_dot = j.status === "active" ? "\u25cf" : "\u25cb";
+  const status_cls = j.status === "active" ? "status-active" : "status-paused";
+  const runLabel = isRepoJob(j) ? "\u7acb\u5373\u68c0\u67e5" : "\u7acb\u5373\u6267\u884c";
+  return "<article class=\"job-card mono-card\" data-job-id=\"" + j.job_id + "\">" +
+    "<div class=\"mono-card-main\">" +
+      "<div class=\"mono-card-name\">" +
+        "<span class=\"tag " + typeCls + "\">" + platLabel(j.platform) + "</span>" +
+        "<span class=\"mono-repo-name\">" + kw + "</span>" +
+        branch_label +
+      "</div>" +
+      "<div class=\"mono-card-status\">" +
+        "<span class=\"" + status_cls + "\">" + status_dot + " " + j.status + "</span>" +
+      "</div>" +
+    "</div>" +
+    "<div class=\"mono-card-actions\">" +
+      "<button class=\"btn-ghost btn-run-job\" data-job-id=\"" + j.job_id + "\">" + runLabel + "</button>" +
+      "<button class=\"btn-ghost btn-edit-job\" data-job-id=\"" + j.job_id + "\">\u7f16\u8f91</button>" +
+      "<button class=\"btn-ghost btn-del-job\" data-job-id=\"" + j.job_id + "\">\u5220\u9664</button>" +
+    "</div>" +
+  "</article>";
+}function filterJobs(jobs) {
   if (jobFilter === 'all') return jobs;
   if (jobFilter === 'social') return jobs.filter(j => j.source_type === 'social');
   return jobs.filter(j => j.source_type === jobFilter || j.platform === jobFilter);
@@ -282,30 +272,14 @@ async function loadRules() {
     </tr>`).join('');
 }
 
+
+
+async function loadHistory() {   const eventsData = await api('/api/repo-watch/events?limit=50');   const events = eventsData.events || [];   const tbody = document.getElementById('historyEventsBody');   if (!events.length) {     tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无运行记录</td></tr>';     return;   }   tbody.innerHTML = events.map(e => `     <tr>       <td>${fmtTime(e.detected_at)}</td>       <td>${e.repo}</td>       <td>${branchDisplay(e.branch)}</td>       <td>${e.commit_author}</td>       <td>${fmtTime(e.committed_at)}</td>       <td><code>${e.commit_sha.slice(0, 8)}</code></td>       <td>${(e.commit_message || '').slice(0, 40)}</td>     </tr>`).join(''); }
+
 async function loadRepos() {
   const repoJobs = allJobs.length ? allJobs.filter(isRepoJob) : (await api('/api/jobs')).filter(isRepoJob);
   renderJobsList('reposJobsList', repoJobs, '暂无仓库任务，请在「监控任务」中创建');
-
-  const eventsData = await api('/api/repo-watch/events?limit=30');
-  const events = eventsData.events || [];
-  const tbody = document.getElementById('repoEventsBody');
-  if (!events.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无代码更新记录</td></tr>';
-    return;
-  }
-  tbody.innerHTML = events.map(e => `
-    <tr>
-      <td>${fmtTime(e.detected_at)}</td>
-      <td>${e.repo}</td>
-      <td>${branchDisplay(e.branch)}</td>
-      <td>${e.commit_author}</td>
-      <td>${fmtTime(e.committed_at)}</td>
-      <td><code>${e.commit_sha.slice(0, 8)}</code></td>
-      <td>${(e.commit_message || '').slice(0, 40)}</td>
-    </tr>`).join('');
-}
-
-function selectedRuleSets() {
+}function selectedRuleSets() {
   const sel = document.getElementById('newRuleSets');
   return Array.from(sel.selectedOptions).map(o => o.value);
 }
@@ -486,7 +460,7 @@ async function importRules(kind) {
 
 function setButtonsDisabled(disabled) {
   document.querySelectorAll('.btn-run-job, .btn-primary, .btn-ghost').forEach(btn => {
-    if (btn.id !== 'btnRefreshAll') btn.disabled = disabled;
+    if (btn.id !== 'btnRefreshAll' && !btn.id.match(/^(btnSaveFeishuBot|btnTestFeishuBot|btnSyncFeishuDoc|btnPushFeishu|btnOpenPptGenerator|btnPptGenerate|btnPptCancel|btnPptBatch)$/)) btn.disabled = disabled;
   });
 }
 
@@ -499,6 +473,7 @@ async function refresh() {
       loadAnalysis(),
       loadRules(),
       loadRepos(),
+      loadHistory(),
       loadSettings(),
       checkHealth(),
     ]);

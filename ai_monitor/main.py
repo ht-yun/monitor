@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """FastAPI application entry point for AI Monitor."""
 
+import asyncio
+import logging
 import sys
 from pathlib import Path
 
@@ -17,12 +19,61 @@ from fastapi.staticfiles import StaticFiles
 
 from ai_monitor.config.settings import get_settings
 from ai_monitor.store.database import init_db, close_db
-from ai_monitor.dashboard.routers import alerts, analysis, jobs, rules, system
+from ai_monitor.dashboard.routers import alerts, analysis, feishu, jobs, notifications, ppt_generator, repositories, rules, system
+
+
+logger = logging.getLogger("ai_monitor")
+
+
+async def _background_scheduler():
+    """Background loop: reconcile branches + check repo updates every 30 min."""
+    while True:
+        try:
+            from ai_monitor.repo_watch.reconciler import reconcile_repositories
+            result = await reconcile_repositories()
+            created = result.get("branches_created", 0)
+            removed = result.get("branches_deleted", 0)
+            if created > 0 or removed > 0:
+                logger.info("[bg] reconcile: %d new, %d removed", created, removed)
+            
+            from sqlalchemy import select
+            from ai_monitor.store.database import get_session
+            from ai_monitor.store.models import MonitoringJob
+            from ai_monitor.scheduler.base import JobConfig
+            from ai_monitor.repo_watch.service import check_repo_update, REPO_PLATFORMS
+            
+            async with get_session() as session:
+                rows = await session.execute(
+                    select(MonitoringJob).where(
+                        MonitoringJob.source_type.in_(REPO_PLATFORMS),
+                        MonitoringJob.status == "active"
+                    )
+                )
+                jobs = list(rows.scalars().all())
+            
+            for job in jobs:
+                try:
+                    config = JobConfig(
+                        job_id=job.job_id,
+                        platform=job.platform,
+                        repo=job.repo or "",
+                        branch=job.branch or "",
+                        keywords=job.keywords or "",
+                        source_type=job.source_type,
+                    )
+                    jr = await check_repo_update(config)
+                    if jr.repo_updated:
+                        logger.info("[bg] update: %s new commit by %s", job.job_id, jr.commit_author)
+                except Exception as e:
+                    logger.warning("[bg] check failed %s: %s", job.job_id, e)
+        except Exception as e:
+            logger.error("[bg] cycle error: %s", e)
+        
+        await asyncio.sleep(1800)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     settings = get_settings()
     await init_db()
     from ai_monitor.config.notification_loader import sync_notifications_from_yaml
@@ -32,8 +83,21 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
     app.state.settings = settings
+
+    # Start background scheduler
+    scheduler_task = asyncio.create_task(_background_scheduler())
+    app.state._scheduler_task = scheduler_task
+
     yield
-    # Shutdown
+
+    # Stop background scheduler on shutdown
+    if hasattr(app.state, "_scheduler_task"):
+        app.state._scheduler_task.cancel()
+        try:
+            await app.state._scheduler_task
+        except asyncio.CancelledError:
+            pass
+
     await close_db()
 
 
@@ -62,6 +126,10 @@ app.include_router(alerts.router)
 app.include_router(rules.router)
 app.include_router(analysis.router)
 app.include_router(system.router)
+app.include_router(feishu.router)
+app.include_router(ppt_generator.router)
+app.include_router(repositories.router)
+app.include_router(notifications.router)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

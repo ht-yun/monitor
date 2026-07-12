@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Repository watch job ID and config helpers."""
 
+import hashlib
+import re
+
 from ai_monitor.scheduler.base import JobConfig
 from ai_monitor.repo_watch.url_parser import parse_repo_target
 
@@ -22,8 +25,9 @@ def make_repo_job_id(platform: str, repo: str, branch: str = "") -> str:
     base = f"{platform.lower()}_{repo.replace('/', '_')}"
     branch = (branch or "").strip()
     if branch:
-        safe = branch.replace("/", "_").replace("\\", "_")
-        return f"{base}__{safe}"
+        safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", branch).strip("_") or "branch"
+        digest = hashlib.sha1(f"{platform}:{repo}:{branch}".encode("utf-8")).hexdigest()[:8]
+        return f"{base}__{safe}__{digest}"
     return base
 
 

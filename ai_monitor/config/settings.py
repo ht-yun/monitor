@@ -46,6 +46,14 @@ class Settings(BaseSettings):
 
     # Feishu (Lark)
     FEISHU_WEBHOOK_URL: str = ""
+    FEISHU_APP_ID: str = ""
+    FEISHU_APP_SECRET: str = ""
+    FEISHU_REPO_DOC_TOKEN: str = (
+        "https://insight-lab.feishu.cn/wiki/NGOiwhi9binbKNkeikBcdZcWnZd?from=from_copylink"
+    )
+    FEISHU_VERIFICATION_TOKEN: str = ""
+    FEISHU_SYNC_INTERVAL_SECONDS: int = 600
+    REPO_BRANCH_SYNC_INTERVAL_SECONDS: int = 1800
 
     # WeChat Work
     WECHAT_WORK_WEBHOOK_URL: str = ""

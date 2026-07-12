@@ -17,6 +17,8 @@ from ai_monitor.store.database import get_session, init_db
 from ai_monitor.store.models import MonitoringJob as JobModel
 
 logger = logging.getLogger("ai_monitor")
+_last_feishu_sync_at: Optional[datetime] = None
+_last_branch_sync_at: Optional[datetime] = None
 
 # Minimal cron → seconds mapping
 CRON_INTERVALS = {
@@ -81,9 +83,44 @@ async def run_social_jobs() -> int:
 
 
 async def run_daemon_cycle() -> dict:
+    global _last_feishu_sync_at, _last_branch_sync_at
+    settings = get_settings()
+    now = datetime.utcnow()
+    feishu_n = 0
+    branch_sync = None
+
+    if (
+        settings.FEISHU_REPO_DOC_TOKEN
+        and settings.FEISHU_APP_ID
+        and settings.FEISHU_APP_SECRET
+        and (
+            _last_feishu_sync_at is None
+            or (now - _last_feishu_sync_at).total_seconds() >= settings.FEISHU_SYNC_INTERVAL_SECONDS
+        )
+    ):
+        from ai_monitor.feishu.sync import sync_repositories_from_feishu
+
+        feishu_result = await sync_repositories_from_feishu(run_reconcile=False)
+        feishu_n = feishu_result.get("found", 0)
+        _last_feishu_sync_at = now
+
+    if (
+        _last_branch_sync_at is None
+        or (now - _last_branch_sync_at).total_seconds() >= settings.REPO_BRANCH_SYNC_INTERVAL_SECONDS
+    ):
+        from ai_monitor.repo_watch.reconciler import reconcile_repositories
+
+        branch_sync = await reconcile_repositories()
+        _last_branch_sync_at = now
+
     repo_n = await run_all_repo_jobs()
     social_n = await run_social_jobs()
-    return {"repo_jobs": repo_n, "social_jobs": social_n}
+    return {
+        "repo_jobs": repo_n,
+        "social_jobs": social_n,
+        "feishu_repos": feishu_n,
+        "branch_sync": branch_sync,
+    }
 
 
 async def daemon_loop(interval_seconds: Optional[int] = None) -> None:

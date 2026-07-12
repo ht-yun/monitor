@@ -58,8 +58,17 @@ async def sync_notifications_from_yaml() -> int:
             )
             row = result.scalar_one_or_none()
             if row:
+                if (
+                    name == "feishu"
+                    and not resolved.get("webhook_url")
+                    and (row.config or {}).get("webhook_url")
+                ):
+                    resolved = dict(row.config or {})
+                    enabled = bool(row.is_enabled)
+                else:
+                    enabled = bool(cfg.get("enabled", False))
                 row.display_name = cfg.get("display_name", name)
-                row.is_enabled = bool(cfg.get("enabled", False))
+                row.is_enabled = enabled
                 row.config = resolved
             else:
                 session.add(

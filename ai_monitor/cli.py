@@ -46,7 +46,7 @@ def init_rules():
         await init_db()
 
         rules_path = Path(__file__).resolve().parent / "config" / "rules.yaml"
-        with open(rules_path, "r", encoding="utf-8") as f:
+        with open(str(rules_path), "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         imported = 0
@@ -67,6 +67,7 @@ def init_rules():
                         severity=rule.get("severity", "warning"),
                         notification_channels=rule.get("notification_channels", []),
                         cooldown_minutes=rule.get("cooldown_minutes", 30),
+                        rule_set=set_name,
                         is_active=True,
                     )
                     session.add(record)
@@ -267,6 +268,41 @@ def start(
 repo_cli = typer.Typer(help="Monitor GitHub/Gitee repos for new commits (hourly).")
 cli.add_typer(repo_cli, name="watch-repo")
 
+feishu_cli = typer.Typer(help="Discover repository links from Feishu cloud docs.")
+cli.add_typer(feishu_cli, name="feishu")
+
+
+@feishu_cli.command("sync")
+def feishu_sync(
+    doc_token: Optional[str] = typer.Option(None, help="Feishu docx token; defaults to AIMONITOR_FEISHU_REPO_DOC_TOKEN"),
+    reconcile: bool = typer.Option(True, help="Also discover branches and create watch jobs"),
+):
+    """Sync repository links from a Feishu cloud document."""
+
+    async def _sync():
+        from ai_monitor.store.database import init_db
+        from ai_monitor.feishu.sync import sync_repositories_from_feishu
+
+        await init_db()
+        result = await sync_repositories_from_feishu(doc_token, run_reconcile=reconcile)
+        print(
+            "[feishu] synced "
+            f"found={result.get('found', 0)} "
+            f"created={result.get('created', 0)} "
+            f"updated={result.get('updated', 0)}"
+        )
+        if result.get("reconcile"):
+            r = result["reconcile"]
+            print(
+                "[repo] reconcile "
+                f"repos={r.get('repositories', 0)} "
+                f"branches={r.get('branches_seen', 0)} "
+                f"jobs_created={r.get('jobs_created', 0)} "
+                f"errors={len(r.get('errors', []))}"
+            )
+
+    asyncio.run(_sync())
+
 
 @repo_cli.command("add")
 def watch_repo_add(
@@ -368,6 +404,59 @@ def watch_repo_list():
             )
 
     asyncio.run(_list())
+
+
+@repo_cli.command("reconcile")
+def watch_repo_reconcile():
+    """Discover branches for all monitored repositories and ensure watch jobs."""
+
+    async def _run():
+        from ai_monitor.store.database import init_db
+        from ai_monitor.repo_watch.reconciler import reconcile_repositories
+
+        await init_db()
+        result = await reconcile_repositories()
+        print(
+            "[repo_watch] reconcile "
+            f"repos={result['repositories']} "
+            f"branches_seen={result['branches_seen']} "
+            f"branches_created={result['branches_created']} "
+            f"jobs_created={result['jobs_created']} "
+            f"errors={len(result['errors'])}"
+        )
+        for err in result["errors"]:
+            print(f"  ERROR {err['platform']}/{err['repo']}: {err['error']}")
+
+    asyncio.run(_run())
+
+
+@repo_cli.command("branches")
+def watch_repo_branches(
+    platform: str = typer.Option(..., help="github or gitee"),
+    repo: str = typer.Option(..., help="Repository as owner/name"),
+):
+    """List remote branches for a GitHub/Gitee repository."""
+
+    async def _run():
+        from ai_monitor.collectors.github_collector import GitHubCollector
+        from ai_monitor.collectors.gitee_collector import GiteeCollector
+
+        platform_l = platform.lower().strip()
+        if platform_l == "github":
+            collector = GitHubCollector()
+        elif platform_l == "gitee":
+            collector = GiteeCollector()
+        else:
+            raise typer.BadParameter("platform must be github or gitee")
+
+        info = await collector.fetch_repo_info(repo)
+        branches = await collector.list_branches(repo)
+        print(f"[repo_watch] {platform_l}/{repo} default={info.default_branch}")
+        for b in branches:
+            mark = "*" if b.name == info.default_branch else " "
+            print(f" {mark} {b.name} {b.sha[:8] if b.sha else '-'}")
+
+    asyncio.run(_run())
 
 
 @repo_cli.command("check")

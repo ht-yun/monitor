@@ -56,6 +56,47 @@ class MonitoringJob(Base):
     historical_stats = Column(JSON, default=list)  # rolling stats for trend rules
 
 
+class MonitoredRepository(Base):
+    """Repository discovered from Feishu or added manually."""
+    __tablename__ = "monitored_repositories"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    platform = Column(String(16), nullable=False, index=True)
+    owner = Column(String(128), nullable=False)
+    name = Column(String(128), nullable=False)
+    repo = Column(String(256), nullable=False, index=True)  # owner/name
+    repo_url = Column(String(512), default="")
+    default_branch = Column(String(256), default="")
+    source = Column(String(32), default="manual")  # feishu_doc | manual
+    source_doc_token = Column(String(128), default="")
+    status = Column(String(32), default="active")  # active | missing_from_feishu | error
+    error_message = Column(Text, default="")
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_branch_sync_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class MonitoredBranch(Base):
+    """Branch under a monitored repository."""
+    __tablename__ = "monitored_branches"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    repository_id = Column(Integer, index=True, nullable=False)
+    branch = Column(String(256), nullable=False)
+    is_default = Column(Boolean, default=False)
+    job_id = Column(String(128), index=True, nullable=False)
+    last_sha = Column(String(64), nullable=True)
+    last_commit_author = Column(String(128), nullable=True)
+    last_commit_at = Column(DateTime, nullable=True)
+    status = Column(String(32), default="active")  # active | deleted | paused
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class RepoUpdateEvent(Base):
     """Recorded when a monitored repository receives a new commit."""
     __tablename__ = "repo_update_events"
